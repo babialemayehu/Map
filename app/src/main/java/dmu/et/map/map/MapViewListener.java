@@ -1,15 +1,16 @@
 package dmu.et.map.map;
 
-import android.content.Context;
-import android.graphics.Rect;
 import android.graphics.RectF;
+import android.location.Location;
 import android.os.Build;
 import android.util.Log;
-import android.util.Pair;
+import android.view.MotionEvent;
 import android.view.View;
 import android.view.ViewTreeObserver;
+import android.widget.ImageView;
 
 import com.github.chrisbanes.photoview.OnMatrixChangedListener;
+import com.github.chrisbanes.photoview.OnPhotoTapListener;
 import com.github.chrisbanes.photoview.OnScaleChangedListener;
 
 import androidx.annotation.RequiresApi;
@@ -19,17 +20,15 @@ public class MapViewListener implements
         OnMatrixChangedListener,
         OnScaleChangedListener,
         ViewTreeObserver.OnScrollChangedListener,
-        View.OnClickListener {
-
-    Context context;
+        View.OnClickListener,
+        OnPhotoTapListener {
     LocalMap mLocalMap;
     MapView view;
-    Rect rect;
+
     @RequiresApi(api = Build.VERSION_CODES.M)
-    public MapViewListener(MapView view, Rect rect){
+    public MapViewListener(MapView view){
         this.view = view;
-        this.context = view.getContext();
-        this.mLocalMap = new LocalMap(this.context);
+        this.mLocalMap = new LocalMap(this.view);
     }
     @Override
     public void onClick(View v) {
@@ -43,24 +42,21 @@ public class MapViewListener implements
 
     @Override
     public void onMatrixChanged(RectF rect) {
-        Pair<Float,Float> place =this.mLocalMap.gpsToMap(
-                GeoMap.GRID_ORIGEN_X+(GeoMap.GRID_DISTANCE_X/2),
-                GeoMap.GRID_ORIGEN_Y+(GeoMap.GRID_DISTANCE_Y/2),
-                rect.right-rect.left, rect.bottom-rect.top);
-
-        this.rect = new Rect(Math.round(place.first.floatValue()+rect.left),
-                            Math.round(place.second.floatValue()+rect.right),
-                     Math.round(place.first.floatValue()+30f),
-                Math.round(place.second.floatValue()+30f));
-        this.view.setRect(this.rect);
-        Log.i("screen", "rect: "+this.rect);
-        Log.i("screen", "rect: "+rect + " <<<<==== ");
-
-        view.postInvalidate();
+        if(this.view.getCanvas() != null)
+            this.view.getRenderer().update(this.view.getCanvas(),rect);
     }
 
     @Override
     public void onScaleChange(float scaleFactor, float focusX, float focusY) {
 
+    }
+
+    @Override
+    public void onPhotoTap(ImageView view, float x, float y)
+    {
+        Location loc = this.view.getGeoMap().getLocationInstance(
+                (GeoMap.GRID_DISTANCE_X*x)+GeoMap.GRID_ORIGEN_X,
+                (GeoMap.GRID_DISTANCE_Y*y)+GeoMap.GRID_ORIGEN_Y);
+        this.view.getGeoMap().setPinPoint(loc);
     }
 }
